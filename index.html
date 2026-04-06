@@ -231,7 +231,11 @@
       const jp = scores.C + scores.R + scores.T;
       const JP = jp >= 13 ? 'J' : 'P';
 
-      return E_I + NS + JP;
+      // TF: T分数单独决定 T/F
+      // T(可训练) >= 2分 -> T, < 2分 -> F
+      const TF = scores.T >= 2 ? 'T' : 'F';
+
+      return E_I + NS + TF + JP;
     }
 
     function showResult() {
