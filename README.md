@@ -1,5 +1,7 @@
 # 🐶 狗狗 MBTI 性格测试
 
+> v1.1.2 - 12题×6维度·映射MBTI-12
+
 > 🎯 12题 × 6维度 · 精准映射16型
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
