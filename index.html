@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🐶 狗狗 MBTI 性格测试</title>
+  <title>🐶 狗狗 MBTI 性格测试 v1.1.1</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -20,12 +20,14 @@
     
     header { text-align: center; padding: 24px 0; }
     h1 { font-size: 24px; margin-bottom: 8px; }
+    .version { font-size: 12px; color: var(--primary); background: #e8f5e8; padding: 2px 8px; border-radius: 4px; }
     .subtitle { font-size: 14px; color: var(--text-sub); }
     
     .intro { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .intro h2 { font-size: 16px; margin-bottom: 12px; color: var(--primary); }
     .intro p { font-size: 13px; line-height: 1.6; color: var(--text-sub); margin-bottom: 8px; }
     .intro .note { background: #fff9e6; padding: 10px; border-radius: 8px; font-size: 12px; color: #996600; }
+    .intro .formula { background: #f0f5ff; padding: 12px; border-radius: 8px; font-size: 12px; color: var(--primary); font-family: monospace; }
     
     .progress { height: 6px; background: #eee; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
     .progress-bar { height: 100%; background: var(--primary); transition: width 0.3s; }
@@ -37,6 +39,7 @@
     .question-num { font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
     .question-text { font-size: 16px; font-weight: 500; margin-bottom: 20px; line-height: 1.5; }
     .question-dim { font-size: 12px; color: var(--text-sub); background: #f0f0f0; padding: 4px 10px; border-radius: 20px; display: inline-block; }
+    .question-reverse { font-size: 11px; color: #ff6b6b; background: #ffeaea; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
     
     .options { display: flex; flex-direction: column; gap: 10px; }
     .option { display: flex; align-items: center; padding: 14px 16px; border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; }
@@ -59,12 +62,13 @@
     .result-card { background: var(--card); border-radius: 16px; padding: 32px 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-bottom: 20px; }
     .mbti-type { font-size: 48px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
     .mbti-name { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
-    .mbti-desc { font-size: 14px; color: var(--text-sub); line-height: 1.6; }
+    .mbti-desc { font-size: 14px; color: var(--text-sub); line-height: 1.6; margin-bottom: 16px; }
     
     .dimension-result { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
     .dim-box { background: #f8faf8; padding: 12px; border-radius: 10px; text-align: center; }
-    .dim-label { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .dim-label { font-size: 18px; font-weight: 700; color: var(--primary); }
     .dim-name { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+    .dim-arrow { font-size: 10px; color: var(--accent); margin-top: 2px; }
     
     .detail-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
     .detail-card { background: var(--card); border-radius: 12px; padding: 16px; text-align: left; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -80,7 +84,8 @@
   <div class="container">
     <header>
       <h1>🐶 狗狗 MBTI 性格测试</h1>
-      <p class="subtitle">12题 × 6维度 · 精准映射16型</p>
+      <span class="version">v1.1.1</span>
+      <p class="subtitle">12题 × 6维度 · 映射MBTI-12</p>
     </header>
 
     <div class="intro" id="intro">
@@ -88,6 +93,10 @@
       <p>请根据狗狗过去两周的典型行为作答，每题单选：</p>
       <p><strong>A 从不</strong> · B 很少 · C 有时 · <strong>D 经常</strong> · E 总是</p>
       <div class="note">💡 提示：选择最符合狗狗日常表现的选项，不需要过度思考</div>
+      <div class="formula" style="margin-top:12px;">
+        评分规则：A=0 B=1 C=2 D=3 E=4<br>
+        反向题(R)：score = 4 − raw
+      </div>
     </div>
 
     <div class="progress"><div class="progress-bar" id="progressBar" style="width: 0%"></div></div>
@@ -128,6 +137,7 @@
   </div>
 
   <script>
+    // 12道题，6维度 x 2题
     const questions = [
       { id: 1, dim: 'S', name: '社交性', text: '陌生人靠近或进门时，狗狗会主动靠近、嗅闻或求关注', reverse: false },
       { id: 2, dim: 'S', name: '社交性', text: '陌生人试图抚摸或靠近时，狗狗会明显回避或躲开', reverse: true },
@@ -143,19 +153,37 @@
       { id: 12, dim: 'Q', name: '好奇', text: '面对新东西，狗狗往往兴趣不大或很快放弃', reverse: true },
     ];
 
+    // MBTI-12 映射表（3字母 -> 4字母描述）
+    const mbtiMap = {
+      'ENJ': 'ENTJ',  // 社交领队犬
+      'ENP': 'ENTP',  // 快乐冒险犬
+      'ESJ': 'ESTJ',  // 乖模特范犬
+      'ESP': 'ESFP',  // 开心果犬
+      'ENF': 'ENFP',  // 热情探索犬
+      'ESF': 'ESFJ',  // 亲和陪伴犬
+      'INJ': 'INTJ',  // 冷静规划犬
+      'INP': 'INTP',  // 研究型观察犬
+      'ISJ': 'ISTJ',  // 安全守序犬
+      'ISP': 'ISFP',  // 温柔理想犬
+      'INF': 'INFP',  // 温柔理想犬
+      'ISF': 'ISFJ',  // 温柔照看犬
+    };
+
+    // 4字母MBTI详细数据
     const mbtiData = {
       'ENTJ': { name: '社交领队犬', desc: '自信、主导、反应快，常成为"狗群核心"', trait: '领导力强，喜欢掌控局面，对新环境适应快', advice: '需要足够的运动和挑战，提供领导角色给它，定期训练保持脑力活跃' },
       'ENTP': { name: '快乐冒险犬', desc: '精力充沛、好奇心强，喜欢变化和新刺激', trait: '爱玩好动创意多，善于社交，适应力强', advice: '需要大量运动和探索机会，提供新玩具和游戏，避免无聊' },
-      'ESTJ': { name: '模范犬', desc: '规则感强、听指令、稳定可靠，非常好训练', trait: '忠诚可靠，遵守规则，学习能力强', advice: '建立明确的规则和作息，需要正向训练，擅长执行任务' },
+      'ESTJ': { name: '乖模特范犬', desc: '规则感强、听指令、稳定可靠，非常好训练', trait: '忠诚可靠，遵守规则，学习能力强', advice: '建立明确的规则和作息，需要正向训练，擅长执行任务' },
       'ESFJ': { name: '亲和陪伴犬', desc: '亲人、情绪稳定、喜欢互动，典型家庭犬', trait: '温暖亲人，喜欢陪伴，情绪感知敏锐', advice: '需要大量陪伴时间不喜欢独处，多进行互动游戏和抚摸' },
       'ENFP': { name: '热情探索犬', desc: '外向又感性，情绪表达强，黏人但爱玩', trait: '热情开朗，感情丰富，喜欢新体验', advice: '需要情感关注和互动，提供多样化活动，避免长时间独处' },
       'ESFP': { name: '开心果犬', desc: '活在当下，爱玩爱闹，行动先于思考', trait: '活泼好动，幽默感强，喜欢玩耍', advice: '需要大量运动和玩耍时间，喜欢新玩具和游戏，享受当下' },
       'INTJ': { name: '冷静规划犬', desc: '独立、观察力强，习惯先判断再行动', trait: '独立思考，专注力强，不轻易受影响', advice: '给它独立空间，不需要过度打扰，尊重它的决策逻辑' },
       'INTP': { name: '研究型观察犬', desc: '不黏人但好奇，常自己"研究世界"', trait: '好奇心强，善于观察，独立性强', advice: '提供探索环境和智力玩具，尊重它的独立，不需要强制互动' },
-      'ISTJ': { name: '守序犬', desc: '稳定、依赖熟悉环境，非常忠诚', trait: '稳重可靠，忠诚度高，适应常规', advice: '保持规律作息，提供稳定环境，训练时保持一致性' },
+      'ISTJ': { name: '安全守序犬', desc: '稳定、依赖熟悉环境，非常忠诚', trait: '稳重可靠，忠诚度高，适应常规', advice: '保持规律作息，提供稳定环境，训练时保持一致性' },
       'ISFJ': { name: '温柔照看犬', desc: '安静、情绪细腻，对主人依恋度高', trait: '温柔细腻，敏感忠诚，喜欢陪伴', advice: '需要稳定情感连接，提供安全感，温柔对待' },
       'INFJ': { name: '敏感洞察犬', desc: '慢热、感知力强，对环境变化非常敏感', trait: '感知敏锐，内心丰富，情感细腻', advice: '给它安静环境，敏感对待它的情绪变化，需要时间适应新事物' },
       'INFP': { name: '温柔理想犬', desc: '情绪丰富、需要安全感，依恋关系深', trait: '感情丰富，需要安全感，忠诚敏感', advice: '提供稳定的情感支持，建立安全感，温柔沟通' },
+      'ISFP': { name: '温柔艺术家犬', desc: '敏感细腻、善于表达情感、追求美', trait: '温柔敏感，艺术感强，情感丰富', advice: '提供安静舒适环境，温柔对待，尊重它的情感表达' },
     };
 
     const options = [
@@ -176,7 +204,7 @@
         card.className = `question-card${idx === 0 ? ' active' : ''}`;
         card.id = `q${idx}`;
         card.innerHTML = `
-          <div class="question-num">第 ${idx + 1} / 12 题</div>
+          <div class="question-num">第 ${idx + 1} / 12 题 ${q.reverse ? '<span class="question-reverse">R</span>' : ''}</div>
           <div class="question-text">${q.text}</div>
           <div class="question-dim">${q.dim} · ${q.name}</div>
           <div class="options">
@@ -194,15 +222,10 @@
     }
 
     function updateUI() {
-      // 更新进度
       document.getElementById('progressBar').style.width = `${((currentQ + 1) / 12) * 100}%`;
-      
-      // 显示当前题目
       document.querySelectorAll('.question-card').forEach((c, i) => {
         c.classList.toggle('active', i === currentQ);
       });
-      
-      // 导航按钮
       const nav = document.getElementById('navBtns');
       nav.style.display = 'flex';
       document.getElementById('prevBtn').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
@@ -210,6 +233,7 @@
       document.getElementById('nextBtn').disabled = !answers[currentQ];
     }
 
+    // 核心映射算法（v1.1.1版本）
     function calculateMBTI() {
       let scores = { S: 0, E: 0, C: 0, R: 0, T: 0, Q: 0 };
       
@@ -220,53 +244,80 @@
         scores[q.dim] += score;
       });
 
-      // EI: S + E (范围0-16)
+      // EI: S + E (范围0-16), ≥9 = E
       const ei = scores.S + scores.E;
       const E_I = ei >= 9 ? 'E' : 'I';
 
-      // NS: Q (范围0-8)
+      // NS: Q (范围0-8), ≥5 = N
       const NS = scores.Q >= 5 ? 'N' : 'S';
 
-      // JP: C + R + T (范围0-24)
+      // JP: C + R + T (范围0-24), ≥13 = J
       const jp = scores.C + scores.R + scores.T;
       const JP = jp >= 13 ? 'J' : 'P';
 
-      // TF: T分数单独决定 T/F
-      // T(可训练) >= 2分 -> T, < 2分 -> F
-      const TF = scores.T >= 2 ? 'T' : 'F';
+      // TF: R (反应) ≥4 为F, <4 为T
+      const TF = scores.R >= 4 ? 'F' : 'T';
 
       return E_I + NS + TF + JP;
     }
 
     function showResult() {
-      const mbti = calculateMBTI();
-      const data = mbtiData[mbti] || mbtiData['ESFJ'];
+      const mbti4 = calculateMBTI();
+      const data = mbtiData[mbti4] || mbtiData['ESFJ'];
       
       document.getElementById('intro').style.display = 'none';
       document.getElementById('navBtns').style.display = 'none';
       document.querySelectorAll('.question-card').forEach(c => c.style.display = 'none');
       document.getElementById('progressBar').style.width = '100%';
       
-      document.getElementById('mbtiType').textContent = mbti;
+      document.getElementById('mbtiType').textContent = mbti4;
       document.getElementById('mbtiName').textContent = data.name;
       document.getElementById('mbtiDesc').textContent = data.desc;
       document.getElementById('traitDesc').textContent = data.trait;
       document.getElementById('adviceDesc').textContent = data.advice;
       
+      // 显示维度分析
+      const dimResult = document.getElementById('dimResult');
+      const scores = { S: 0, E: 0, C: 0, R: 0, T: 0, Q: 0 };
+      questions.forEach((q, idx) => {
+        const raw = options.findIndex(o => o.letter === answers[idx]);
+        let score = raw;
+        if (q.reverse) score = 4 - raw;
+        scores[q.dim] += score;
+      });
+      
+      const ei = scores.S + scores.E;
+      const ns = scores.Q;
+      const jp = scores.C + scores.R + scores.T;
+      
+      dimResult.innerHTML = `
+        <div class="dim-box">
+          <div class="dim-label">${ei >= 9 ? 'E' : 'I'}</div>
+          <div class="dim-name">外向/内向</div>
+          <div class="dim-arrow">${ei}分</div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-label">${ns >= 5 ? 'N' : 'S'}</div>
+          <div class="dim-name">探索/稳定</div>
+          <div class="dim-arrow">${ns}分</div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-label">${jp >= 13 ? 'J' : 'P'}</div>
+          <div class="dim-name">结构/随性</div>
+          <div class="dim-arrow">${jp}分</div>
+        </div>
+      `;
+      
       document.getElementById('result').classList.add('show');
     }
 
-    // 事件绑定
     document.addEventListener('click', (e) => {
       if (e.target.closest('.option')) {
         const opt = e.target.closest('.option');
         const qIdx = parseInt(opt.dataset.q);
         answers[qIdx] = opt.dataset.a;
-        
-        // 更新选中状态
         opt.parentElement.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
-        
         document.getElementById('nextBtn').disabled = false;
       }
       
